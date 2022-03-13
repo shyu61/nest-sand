@@ -1,10 +1,11 @@
 import { Module } from '@nestjs/common';
 import { AuthorsService } from './authors.service';
 import { AuthorsResolver } from './authors.resolver';
-import { PostsModule } from 'src/posts/posts.module';
+import { PostsService } from 'src/posts/posts.service';
 
 @Module({
-  imports: [PostsModule],
-  providers: [AuthorsService, AuthorsResolver],
+  imports: [PostsService],
+  providers: [AuthorsService, AuthorsResolver, PostsService],
+  exports: [],
 })
 export class AuthorsModule {}
