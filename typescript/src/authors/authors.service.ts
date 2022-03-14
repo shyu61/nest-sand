@@ -1,9 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Client, ClientGrpc } from '@nestjs/microservices';
+import { Observable } from 'rxjs';
+import { grpcClientOptions } from 'src/grpc-client-options';
 import { AuthorInput } from './author.dto';
 import { Author } from './author.model';
 
+interface AuthorsGrpcService {
+  getAuthor({ id: number }): Observable<Author>;
+  getAuthors({}): Observable<Author>;
+}
+
 @Injectable()
-export class AuthorsService {
+export class AuthorsService implements OnModuleInit {
+
   authors: Author[] = [
     {
       id: 1,
@@ -31,17 +40,22 @@ export class AuthorsService {
     },
   ];
 
-  findOneById(id: number): Author {
-    console.log(`findOneById(${id})`);
-    return this.authors.find((author) => author.id === id);
+  @Client(grpcClientOptions) private readonly client: ClientGrpc;
+  private authorsGrpcService: AuthorsGrpcService;
+
+  onModuleInit() {
+    this.authorsGrpcService = this.client.getService<AuthorsGrpcService>('AuthorsService');
   }
 
-  findAll(): Author[] {
-    console.log('findAll()');
-    return this.authors;
+  getAuthor(id: number): Observable<Author> {
+    return this.authorsGrpcService.getAuthor({ id });
   }
 
-  create(author: AuthorInput) {
+  getAuthors(): Observable<Author> {
+    return this.authorsGrpcService.getAuthors({});
+  }
+
+  createAuthor(author: AuthorInput) {
     const newAuthor = {
       id: this.authors.length + 1,
       ...author,

@@ -4,16 +4,19 @@ option go_package = "github.com/shyu61/nest-sand-backend";
 
 package proto;
 
-service AuthorService {
-  rpc GetAuthor(GetAuthorRequest) returns (GetAuthorResponse) {}
+service AuthorsService {
+  rpc GetAuthor(GetAuthorRequest) returns (Author) {}
+  rpc GetAuthors(Empty) returns (stream Author) {}
+}
+
+message Empty {}
+
+message Author {
+  int32 id = 1;
+  string first_name = 2;
+  string last_name = 3;
 }
 
 message GetAuthorRequest {
-  string id = 1;
-}
-
-message GetAuthorResponse {
-  string id = 1;
-  string first_name = 2;
-  string last_name = 3;
+  int32 id = 1;
 }

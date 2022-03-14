@@ -1,43 +1,35 @@
 import {
   Args,
   Int,
-  Parent,
-  ResolveField,
   Resolver,
   Query,
   Mutation,
 } from '@nestjs/graphql';
 import { Author } from './author.model';
 import { AuthorsService } from './authors.service';
-import { PostsService } from '../posts/posts.service';
-import { Post } from '../posts/post.model';
 import { AuthorInput } from './author.dto';
+import { Observable, of } from 'rxjs';
+import { toArray, take } from 'rxjs/operators';
 
 @Resolver(() => Author)
 export class AuthorsResolver {
   constructor(
     private authorsService: AuthorsService,
-    private postsService: PostsService,
   ) {}
 
   @Query(() => Author)
-  async getAuthor(@Args('id', { type: () => Int }) id: number) {
-    return this.authorsService.findOneById(id);
+  getAuthor(@Args('id', { type: () => Int }) id: number): Observable<Author> {
+    return this.authorsService.getAuthor(id);
   }
 
   @Query(() => [Author])
-  async getAuthors() {
-    return this.authorsService.findAll();
+  getAuthors(): Observable<Author[]> {
+    const stream = this.authorsService.getAuthors();
+    return stream.pipe(toArray());
   }
 
   @Mutation(() => Author)
-  async createAuthor(@Args('author') author: AuthorInput) {
-    return this.authorsService.create(author);
-  }
-
-  @ResolveField('posts', () => [Post])
-  async getPosts(@Parent() author: Author) {
-    const { id } = author;
-    return this.postsService.findAll({ authorId: id });
+  createAuthor(@Args('author') author: AuthorInput) {
+    return this.authorsService.createAuthor(author);
   }
 }
