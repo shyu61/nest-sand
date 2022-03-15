@@ -8,8 +8,8 @@ import {
 import { Author } from './author.model';
 import { AuthorsService } from './authors.service';
 import { AuthorInput } from './author.dto';
-import { Observable, of } from 'rxjs';
-import { toArray, take } from 'rxjs/operators';
+import { Observable } from 'rxjs';
+import { toArray } from 'rxjs/operators';
 
 @Resolver(() => Author)
 export class AuthorsResolver {
@@ -29,7 +29,7 @@ export class AuthorsResolver {
   }
 
   @Mutation(() => Author)
-  createAuthor(@Args('author') author: AuthorInput) {
+  createAuthor(@Args('author') author: AuthorInput): Observable<Author> {
     return this.authorsService.createAuthor(author);
   }
 }

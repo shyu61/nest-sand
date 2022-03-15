@@ -8,38 +8,11 @@ import { Author } from './author.model';
 interface AuthorsGrpcService {
   getAuthor({ id: number }): Observable<Author>;
   getAuthors({}): Observable<Author>;
+  createAuthor({ firstName, lastName: string }): Observable<Author>;
 }
 
 @Injectable()
 export class AuthorsService implements OnModuleInit {
-
-  authors: Author[] = [
-    {
-      id: 1,
-      firstName: 'John',
-      lastName: 'Doe',
-      posts: [
-        {
-          id: 1,
-          title: 'Lorem ipsum',
-          votes: 1,
-        },
-      ],
-    },
-    {
-      id: 2,
-      firstName: 'Jane',
-      lastName: 'Doe',
-      posts: [
-        {
-          id: 2,
-          title: 'Lorem ipsum',
-          votes: 2,
-        },
-      ],
-    },
-  ];
-
   @Client(grpcClientOptions) private readonly client: ClientGrpc;
   private authorsGrpcService: AuthorsGrpcService;
 
@@ -56,12 +29,6 @@ export class AuthorsService implements OnModuleInit {
   }
 
   createAuthor(author: AuthorInput) {
-    const newAuthor = {
-      id: this.authors.length + 1,
-      ...author,
-      posts: [],
-    };
-    this.authors.push(newAuthor);
-    return newAuthor;
+    return this.authorsGrpcService.createAuthor(author);
   }
 }
