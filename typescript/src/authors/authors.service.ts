@@ -4,11 +4,10 @@ import { lastValueFrom, Observable } from 'rxjs';
 import { grpcClientOptions } from 'src/grpc-client-options';
 import { AuthorInput, AuthorUpdateInput } from './author.dto';
 import { Author } from './author.model';
-import { ExceptionFilter } from '../common/filters/rpc-exception.filter';
 
 interface AuthorsGrpcService {
+  listAuthors({}): Observable<Author>;
   getAuthor({ id: number }): Observable<Author>;
-  getAuthors({}): Observable<Author>;
   createAuthor({ firstName, lastName: string }): Observable<Author>;
   updateAuthor({ id: number }): Observable<Author>;
   deleteAuthor({ id: number }): Observable<{}>;
@@ -23,12 +22,12 @@ export class AuthorsService implements OnModuleInit {
     this.authorsGrpcService = this.client.getService<AuthorsGrpcService>('AuthorsService');
   }
 
-  getAuthor(id: number): Observable<Author> {
-    return this.authorsGrpcService.getAuthor({ id });
+  listAuthors(): Observable<Author> {
+    return this.authorsGrpcService.listAuthors({});
   }
 
-  getAuthors(): Observable<Author> {
-    return this.authorsGrpcService.getAuthors({});
+  getAuthor(id: number): Observable<Author> {
+    return this.authorsGrpcService.getAuthor({ id });
   }
 
   createAuthor(author: AuthorInput): Observable<Author> {

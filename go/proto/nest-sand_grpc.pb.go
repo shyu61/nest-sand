@@ -19,8 +19,8 @@ const _ = grpc.SupportPackageIsVersion7
 //
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://pkg.go.dev/google.golang.org/grpc/?tab=doc#ClientConn.NewStream.
 type AuthorsServiceClient interface {
+	ListAuthors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthorsService_ListAuthorsClient, error)
 	GetAuthor(ctx context.Context, in *GetAuthorRequest, opts ...grpc.CallOption) (*Author, error)
-	GetAuthors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthorsService_GetAuthorsClient, error)
 	CreateAuthor(ctx context.Context, in *CreateAuthorRequest, opts ...grpc.CallOption) (*Author, error)
 	UpdateAuthor(ctx context.Context, in *UpdateAuthorRequest, opts ...grpc.CallOption) (*Author, error)
 	DeleteAuthor(ctx context.Context, in *DeleteAuthorRequest, opts ...grpc.CallOption) (*emptypb.Empty, error)
@@ -34,21 +34,12 @@ func NewAuthorsServiceClient(cc grpc.ClientConnInterface) AuthorsServiceClient {
 	return &authorsServiceClient{cc}
 }
 
-func (c *authorsServiceClient) GetAuthor(ctx context.Context, in *GetAuthorRequest, opts ...grpc.CallOption) (*Author, error) {
-	out := new(Author)
-	err := c.cc.Invoke(ctx, "/proto.AuthorsService/GetAuthor", in, out, opts...)
+func (c *authorsServiceClient) ListAuthors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthorsService_ListAuthorsClient, error) {
+	stream, err := c.cc.NewStream(ctx, &AuthorsService_ServiceDesc.Streams[0], "/proto.AuthorsService/ListAuthors", opts...)
 	if err != nil {
 		return nil, err
 	}
-	return out, nil
-}
-
-func (c *authorsServiceClient) GetAuthors(ctx context.Context, in *emptypb.Empty, opts ...grpc.CallOption) (AuthorsService_GetAuthorsClient, error) {
-	stream, err := c.cc.NewStream(ctx, &AuthorsService_ServiceDesc.Streams[0], "/proto.AuthorsService/GetAuthors", opts...)
-	if err != nil {
-		return nil, err
-	}
-	x := &authorsServiceGetAuthorsClient{stream}
+	x := &authorsServiceListAuthorsClient{stream}
 	if err := x.ClientStream.SendMsg(in); err != nil {
 		return nil, err
 	}
@@ -58,21 +49,30 @@ func (c *authorsServiceClient) GetAuthors(ctx context.Context, in *emptypb.Empty
 	return x, nil
 }
 
-type AuthorsService_GetAuthorsClient interface {
+type AuthorsService_ListAuthorsClient interface {
 	Recv() (*Author, error)
 	grpc.ClientStream
 }
 
-type authorsServiceGetAuthorsClient struct {
+type authorsServiceListAuthorsClient struct {
 	grpc.ClientStream
 }
 
-func (x *authorsServiceGetAuthorsClient) Recv() (*Author, error) {
+func (x *authorsServiceListAuthorsClient) Recv() (*Author, error) {
 	m := new(Author)
 	if err := x.ClientStream.RecvMsg(m); err != nil {
 		return nil, err
 	}
 	return m, nil
+}
+
+func (c *authorsServiceClient) GetAuthor(ctx context.Context, in *GetAuthorRequest, opts ...grpc.CallOption) (*Author, error) {
+	out := new(Author)
+	err := c.cc.Invoke(ctx, "/proto.AuthorsService/GetAuthor", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
 }
 
 func (c *authorsServiceClient) CreateAuthor(ctx context.Context, in *CreateAuthorRequest, opts ...grpc.CallOption) (*Author, error) {
@@ -106,8 +106,8 @@ func (c *authorsServiceClient) DeleteAuthor(ctx context.Context, in *DeleteAutho
 // All implementations must embed UnimplementedAuthorsServiceServer
 // for forward compatibility
 type AuthorsServiceServer interface {
+	ListAuthors(*emptypb.Empty, AuthorsService_ListAuthorsServer) error
 	GetAuthor(context.Context, *GetAuthorRequest) (*Author, error)
-	GetAuthors(*emptypb.Empty, AuthorsService_GetAuthorsServer) error
 	CreateAuthor(context.Context, *CreateAuthorRequest) (*Author, error)
 	UpdateAuthor(context.Context, *UpdateAuthorRequest) (*Author, error)
 	DeleteAuthor(context.Context, *DeleteAuthorRequest) (*emptypb.Empty, error)
@@ -118,11 +118,11 @@ type AuthorsServiceServer interface {
 type UnimplementedAuthorsServiceServer struct {
 }
 
+func (UnimplementedAuthorsServiceServer) ListAuthors(*emptypb.Empty, AuthorsService_ListAuthorsServer) error {
+	return status.Errorf(codes.Unimplemented, "method ListAuthors not implemented")
+}
 func (UnimplementedAuthorsServiceServer) GetAuthor(context.Context, *GetAuthorRequest) (*Author, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method GetAuthor not implemented")
-}
-func (UnimplementedAuthorsServiceServer) GetAuthors(*emptypb.Empty, AuthorsService_GetAuthorsServer) error {
-	return status.Errorf(codes.Unimplemented, "method GetAuthors not implemented")
 }
 func (UnimplementedAuthorsServiceServer) CreateAuthor(context.Context, *CreateAuthorRequest) (*Author, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method CreateAuthor not implemented")
@@ -146,6 +146,27 @@ func RegisterAuthorsServiceServer(s grpc.ServiceRegistrar, srv AuthorsServiceSer
 	s.RegisterService(&AuthorsService_ServiceDesc, srv)
 }
 
+func _AuthorsService_ListAuthors_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(emptypb.Empty)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(AuthorsServiceServer).ListAuthors(m, &authorsServiceListAuthorsServer{stream})
+}
+
+type AuthorsService_ListAuthorsServer interface {
+	Send(*Author) error
+	grpc.ServerStream
+}
+
+type authorsServiceListAuthorsServer struct {
+	grpc.ServerStream
+}
+
+func (x *authorsServiceListAuthorsServer) Send(m *Author) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 func _AuthorsService_GetAuthor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
 	in := new(GetAuthorRequest)
 	if err := dec(in); err != nil {
@@ -162,27 +183,6 @@ func _AuthorsService_GetAuthor_Handler(srv interface{}, ctx context.Context, dec
 		return srv.(AuthorsServiceServer).GetAuthor(ctx, req.(*GetAuthorRequest))
 	}
 	return interceptor(ctx, in, info, handler)
-}
-
-func _AuthorsService_GetAuthors_Handler(srv interface{}, stream grpc.ServerStream) error {
-	m := new(emptypb.Empty)
-	if err := stream.RecvMsg(m); err != nil {
-		return err
-	}
-	return srv.(AuthorsServiceServer).GetAuthors(m, &authorsServiceGetAuthorsServer{stream})
-}
-
-type AuthorsService_GetAuthorsServer interface {
-	Send(*Author) error
-	grpc.ServerStream
-}
-
-type authorsServiceGetAuthorsServer struct {
-	grpc.ServerStream
-}
-
-func (x *authorsServiceGetAuthorsServer) Send(m *Author) error {
-	return x.ServerStream.SendMsg(m)
 }
 
 func _AuthorsService_CreateAuthor_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
@@ -265,8 +265,8 @@ var AuthorsService_ServiceDesc = grpc.ServiceDesc{
 	},
 	Streams: []grpc.StreamDesc{
 		{
-			StreamName:    "GetAuthors",
-			Handler:       _AuthorsService_GetAuthors_Handler,
+			StreamName:    "ListAuthors",
+			Handler:       _AuthorsService_ListAuthors_Handler,
 			ServerStreams: true,
 		},
 	},

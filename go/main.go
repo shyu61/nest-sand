@@ -56,7 +56,7 @@ func (authorsServer) GetAuthor(ctx context.Context, in *pb.GetAuthorRequest) (*p
 	return nil, fmt.Errorf("author not found")
 }
 
-func (authorsServer) GetAuthors(_ *emptypb.Empty, stream pb.AuthorsService_GetAuthorsServer) error {
+func (authorsServer) ListAuthors(_ *emptypb.Empty, stream pb.AuthorsService_ListAuthorsServer) error {
 	for _, author := range authors {
 		a := &pb.Author{
 			Id:        author.Id,
@@ -85,7 +85,6 @@ func (authorsServer) CreateAuthor(ctx context.Context, in *pb.CreateAuthorReques
 }
 
 func (authorsServer) UpdateAuthor(ctx context.Context, in *pb.UpdateAuthorRequest) (*pb.Author, error) {
-	fmt.Println("-------------")
 	for i, author := range authors {
 		if author.Id == in.Id {
 			if in.FirstName != nil {
@@ -105,8 +104,6 @@ func (authorsServer) UpdateAuthor(ctx context.Context, in *pb.UpdateAuthorReques
 }
 
 func (authorsServer) DeleteAuthor(ctx context.Context, in *pb.DeleteAuthorRequest) (*emptypb.Empty, error) {
-	fmt.Println("=============")
-	fmt.Printf("DeleteAuthor: %v\n", in.Id)
 	for i, author := range authors {
 		if author.Id == in.Id {
 			authors = append(authors[:i], authors[i+1:]...)

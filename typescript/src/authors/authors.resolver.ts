@@ -19,16 +19,16 @@ export class AuthorsResolver {
   constructor(
     private authorsService: AuthorsService,
   ) {}
+  
+  @Query(() => [Author])
+  listAuthors(): Observable<Author[]> {
+    const stream = this.authorsService.listAuthors();
+    return stream.pipe(toArray());
+  }
 
   @Query(() => Author)
   getAuthor(@Args('id', { type: () => Int }) id: number): Observable<Author> {
     return this.authorsService.getAuthor(id);
-  }
-
-  @Query(() => [Author])
-  getAuthors(): Observable<Author[]> {
-    const stream = this.authorsService.getAuthors();
-    return stream.pipe(toArray());
   }
 
   @Mutation(() => Author)
