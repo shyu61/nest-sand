@@ -14,8 +14,16 @@ input AuthorInput {
   lastName: String!
 }
 
+input AuthorUpdateInput {
+  firstName: String
+  id: Int!
+  lastName: String
+}
+
 type Mutation {
   createAuthor(author: AuthorInput!): Author!
+  deleteAuthor(id: Int!): Boolean!
+  updateAuthor(author: AuthorUpdateInput!): Author!
 }
 
 type Post {

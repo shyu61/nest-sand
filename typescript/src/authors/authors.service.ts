@@ -1,14 +1,17 @@
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnModuleInit, UseFilters } from '@nestjs/common';
 import { Client, ClientGrpc } from '@nestjs/microservices';
-import { Observable } from 'rxjs';
+import { lastValueFrom, Observable } from 'rxjs';
 import { grpcClientOptions } from 'src/grpc-client-options';
-import { AuthorInput } from './author.dto';
+import { AuthorInput, AuthorUpdateInput } from './author.dto';
 import { Author } from './author.model';
+import { ExceptionFilter } from '../common/filters/rpc-exception.filter';
 
 interface AuthorsGrpcService {
   getAuthor({ id: number }): Observable<Author>;
   getAuthors({}): Observable<Author>;
   createAuthor({ firstName, lastName: string }): Observable<Author>;
+  updateAuthor({ id: number }): Observable<Author>;
+  deleteAuthor({ id: number }): Observable<{}>;
 }
 
 @Injectable()
@@ -28,7 +31,17 @@ export class AuthorsService implements OnModuleInit {
     return this.authorsGrpcService.getAuthors({});
   }
 
-  createAuthor(author: AuthorInput) {
+  createAuthor(author: AuthorInput): Observable<Author> {
     return this.authorsGrpcService.createAuthor(author);
+  }
+
+  updateAuthor(author: AuthorUpdateInput): Observable<Author> {
+    return this.authorsGrpcService.updateAuthor(author);
+  }
+
+  deleteAuthor(id: number): Boolean {
+    const res = this.authorsGrpcService.deleteAuthor({ id });
+    lastValueFrom(res);
+    return true;
   }
 }

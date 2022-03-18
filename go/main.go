@@ -8,6 +8,9 @@ import (
 
 	pb "github.com/shyu61/nest-sand-backend/proto"
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/status"
+	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
 
 type authorsServer struct {
@@ -53,7 +56,7 @@ func (authorsServer) GetAuthor(ctx context.Context, in *pb.GetAuthorRequest) (*p
 	return nil, fmt.Errorf("author not found")
 }
 
-func (authorsServer) GetAuthors(_ *pb.Empty, stream pb.AuthorsService_GetAuthorsServer) error {
+func (authorsServer) GetAuthors(_ *emptypb.Empty, stream pb.AuthorsService_GetAuthorsServer) error {
 	for _, author := range authors {
 		a := &pb.Author{
 			Id:        author.Id,
@@ -79,6 +82,38 @@ func (authorsServer) CreateAuthor(ctx context.Context, in *pb.CreateAuthorReques
 		FirstName: a.FirstName,
 		LastName:  a.LastName,
 	}, nil
+}
+
+func (authorsServer) UpdateAuthor(ctx context.Context, in *pb.UpdateAuthorRequest) (*pb.Author, error) {
+	fmt.Println("-------------")
+	for i, author := range authors {
+		if author.Id == in.Id {
+			if in.FirstName != nil {
+				authors[i].FirstName = *in.FirstName
+			}
+			if in.LastName != nil {
+				authors[i].LastName = *in.LastName
+			}
+			return &pb.Author{
+				Id:        author.Id,
+				FirstName: authors[i].FirstName,
+				LastName:  authors[i].LastName,
+			}, nil
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "author not found")
+}
+
+func (authorsServer) DeleteAuthor(ctx context.Context, in *pb.DeleteAuthorRequest) (*emptypb.Empty, error) {
+	fmt.Println("=============")
+	fmt.Printf("DeleteAuthor: %v\n", in.Id)
+	for i, author := range authors {
+		if author.Id == in.Id {
+			authors = append(authors[:i], authors[i+1:]...)
+			return &emptypb.Empty{}, nil
+		}
+	}
+	return nil, status.Errorf(codes.NotFound, "author not found")
 }
 
 func main() {
