@@ -34,5 +34,5 @@ type Post {
 
 type Query {
   getAuthor(id: Int!): Author!
-  listAuthors: [Author!]!
+  listAuthors(id: [Int!]!): [Author!]!
 }

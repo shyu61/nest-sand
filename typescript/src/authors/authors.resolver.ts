@@ -21,8 +21,8 @@ export class AuthorsResolver {
   ) {}
   
   @Query(() => [Author])
-  listAuthors(): Observable<Author[]> {
-    const stream = this.authorsService.listAuthors();
+  listAuthors(@Args('id', { type: () => [Int] }) ids: number[]): Observable<Author[]> {
+    const stream = this.authorsService.listAuthors(ids);
     return stream.pipe(toArray());
   }
 
@@ -46,3 +46,13 @@ export class AuthorsResolver {
     return this.authorsService.deleteAuthor(id);
   }
 }
+
+// rxjs
+// Observable: 未来にわたってくるデータを保持するオブジェクト。
+// Subscribe:  Observableから実際のデータを取り出すためのメソッド。
+// Subscriber: Subscribeで取り出したデータに対して行う処理を指定する。next, error, completeの3つのメソッドを持つ。
+// Subject:    Observableのように振る舞うが、マルチキャストを行うことができるオブジェクト。
+
+// Observable --> Subject --> Observer
+//                        \--> Observer
+//             |______Subscribe________|

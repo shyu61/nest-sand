@@ -1,12 +1,12 @@
-import { Injectable, OnModuleInit, UseFilters } from '@nestjs/common';
+import { Injectable, OnModuleInit } from '@nestjs/common';
 import { Client, ClientGrpc } from '@nestjs/microservices';
-import { lastValueFrom, Observable } from 'rxjs';
+import { lastValueFrom, Observable, from, ReplaySubject } from 'rxjs';
 import { grpcClientOptions } from 'src/grpc-client-options';
 import { AuthorInput, AuthorUpdateInput } from './author.dto';
 import { Author } from './author.model';
 
 interface AuthorsGrpcService {
-  listAuthors({}): Observable<Author>;
+  listAuthors(id: Observable<{ id: number }>): Observable<Author>;
   getAuthor({ id: number }): Observable<Author>;
   createAuthor({ firstName, lastName: string }): Observable<Author>;
   updateAuthor({ id: number }): Observable<Author>;
@@ -22,8 +22,11 @@ export class AuthorsService implements OnModuleInit {
     this.authorsGrpcService = this.client.getService<AuthorsGrpcService>('AuthorsService');
   }
 
-  listAuthors(): Observable<Author> {
-    return this.authorsGrpcService.listAuthors({});
+  listAuthors(ids: number[]): Observable<Author> {
+    const ids$ = new ReplaySubject<{ id: number }>();
+    ids.forEach(id => ids$.next({ id }));
+    ids$.complete();
+    return this.authorsGrpcService.listAuthors(ids$.asObservable());
   }
 
   getAuthor(id: number): Observable<Author> {

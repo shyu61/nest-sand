@@ -2,7 +2,7 @@ package main
 
 import (
 	"context"
-	"fmt"
+	"io"
 	"log"
 	"net"
 
@@ -53,21 +53,31 @@ func (authorsServer) GetAuthor(ctx context.Context, in *pb.GetAuthorRequest) (*p
 			}, nil
 		}
 	}
-	return nil, fmt.Errorf("author not found")
+	return nil, status.Errorf(codes.NotFound, "author not found")
 }
 
-func (authorsServer) ListAuthors(_ *emptypb.Empty, stream pb.AuthorsService_ListAuthorsServer) error {
-	for _, author := range authors {
-		a := &pb.Author{
-			Id:        author.Id,
-			FirstName: author.FirstName,
-			LastName:  author.LastName,
+func (authorsServer) ListAuthors(stream pb.AuthorsService_ListAuthorsServer) error {
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
 		}
-		if err := stream.Send(a); err != nil {
-			return err
+		if err != nil {
+			return status.Errorf(codes.NotFound, "author not found")
+		}
+		for _, author := range authors {
+			if author.Id == in.Id {
+				a := &pb.Author{
+					Id:        author.Id,
+					FirstName: author.FirstName,
+					LastName:  author.LastName,
+				}
+				if err := stream.Send(a); err != nil {
+					return err
+				}
+			}
 		}
 	}
-	return nil
 }
 
 func (authorsServer) CreateAuthor(ctx context.Context, in *pb.CreateAuthorRequest) (*pb.Author, error) {
