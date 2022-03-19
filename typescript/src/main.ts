@@ -11,6 +11,6 @@ async function bootstrap() {
 
   app.use(logger);
   app.use(healthz);
-  await app.listen(3000);
+  await app.listen(3300);
 }
 bootstrap();

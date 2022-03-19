@@ -1,0 +1,59 @@
+version: "3"
+
+services:
+  bff:
+    environment:
+      GRPC_SERVER_URL: "backend:50051"
+    build:
+      context: .
+      dockerfile: ./typescript/Dockerfile
+    tty: true
+    depends_on:
+      - backend
+    volumes:
+      - ./typescript:/app/packages
+      - ./proto:/app/proto
+    ports:
+      - "3300:3300"
+
+  backend:
+    environment:
+      TZ: Asia/Tokyo
+      DATABASE_URL: "user:pass@tcp(mysql:3306)/nest_sand"
+    build:
+      context: .
+      dockerfile: ./go/Dockerfile
+    tty: true
+    depends_on:
+      - mysql
+    volumes:
+      - ./go:/go/src/app
+      - ./proto:/go/src/proto
+    ports:
+      - "50051:50051"
+    networks:
+      - default
+      - mysql
+
+  mysql:
+    image: mysql:5.7
+    volumes:
+      - mysql:/var/lib/mysql
+    ports:
+      - "3306:3306"
+    environment:
+      MYSQL_ROOT_PASSWORD: pass
+      MYSQL_USER: user
+      MYSQL_PASSWORD: pass
+      MYSQL_DATABASE: nest_sand
+    command: mysqld --character-set-server=utf8mb4
+    networks:
+      - mysql
+
+networks:
+  mysql:
+    driver: bridge
+
+volumes:
+  mysql:
+    driver: local

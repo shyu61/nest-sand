@@ -7,6 +7,6 @@ export const grpcClientOptions: ClientOptions = {
   options: {
     package: "proto",
     protoPath: join(__dirname, "../../proto/nest-sand.proto"),
-    url: "localhost:50051",
+    url: process.env.GRPC_SERVER_URL,
   },
 };
