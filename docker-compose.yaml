@@ -19,7 +19,7 @@ services:
   backend:
     environment:
       TZ: Asia/Tokyo
-      DATABASE_URL: "user:pass@tcp(mysql:3306)/nest_sand"
+      DATABASE_URL: "mysql://user:pass@tcp(mysql:3306)/nest_sand"
     build:
       context: .
       dockerfile: ./go/Dockerfile

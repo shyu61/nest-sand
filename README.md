@@ -28,3 +28,14 @@ grpcurl -plaintext \
 grpcurl -plaintext -d '{"id": 1}' \
   0.0.0.0:50051 proto.AuthorsService/ListAuthors
 ```
+
+## Migration
+You can use [migrate](https://github.com/golang-migrate/migrate).
+### Create template
+```bash
+migrate create -ext sql -dir db/migrations -seq <table_name>
+```
+### Exec
+```bash
+migrate -database ${DATABASE_URL} -path migrations/authors up
+```

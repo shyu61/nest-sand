@@ -2,13 +2,17 @@ package main
 
 import (
 	"context"
+	"database/sql"
 	"io"
 	"log"
 	"net"
+	"os"
 
+	_ "github.com/go-sql-driver/mysql"
 	pb "github.com/shyu61/nest-sand-backend/proto"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
+	"google.golang.org/grpc/reflection"
 	"google.golang.org/grpc/status"
 	emptypb "google.golang.org/protobuf/types/known/emptypb"
 )
@@ -24,6 +28,7 @@ type Author struct {
 }
 
 var (
+	db      *sql.DB
 	authors = []Author{
 		{
 			Id:        1,
@@ -124,11 +129,21 @@ func (authorsServer) DeleteAuthor(ctx context.Context, in *pb.DeleteAuthorReques
 }
 
 func main() {
+	// seeds.Seed()
+	url := os.Getenv("DATABASE_URL")
+	var err error
+	db, err = sql.Open("mysql", url+"?parseTime=true")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen. error=%v", err)
 	}
 	grpcServer := grpc.NewServer()
+	reflection.Register(grpcServer)
 	pb.RegisterAuthorsServiceServer(grpcServer, &authorsServer{})
 
 	log.Println("Starting server...")
