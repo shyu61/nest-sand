@@ -9,7 +9,9 @@ import (
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
+	"github.com/shyu61/nest-sand-backend/models"
 	pb "github.com/shyu61/nest-sand-backend/proto"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/reflection"
@@ -28,39 +30,25 @@ type Author struct {
 }
 
 var (
-	db      *sql.DB
-	authors = []Author{
-		{
-			Id:        1,
-			FirstName: "Michael",
-			LastName:  "Kozin",
-		},
-		{
-			Id:        2,
-			FirstName: "John",
-			LastName:  "Doe",
-		},
-		{
-			Id:        3,
-			FirstName: "Jane",
-			LastName:  "Bond",
-		},
-	}
+	db *sql.DB
 )
 
 func (authorsServer) GetAuthor(ctx context.Context, in *pb.GetAuthorRequest) (*pb.Author, error) {
-	for _, author := range authors {
-		if author.Id == in.Id {
-			return &pb.Author{
-				Id:        author.Id,
-				FirstName: author.FirstName,
-				LastName:  author.LastName,
-			}, nil
+	author, err := models.FindAuthor(ctx, db, uint64(in.Id))
+	if err != nil {
+		if err == sql.ErrNoRows {
+			return nil, status.Errorf(codes.NotFound, "author not found")
 		}
+		return nil, status.Errorf(codes.Unknown, "failed to get author. error=%v", err)
 	}
-	return nil, status.Errorf(codes.NotFound, "author not found")
+	return &pb.Author{
+		Id:        int32(author.ID),
+		FirstName: author.FirstName,
+		LastName:  author.LastName,
+	}, nil
 }
 
+// FIXME: N+1になるので、Server streaming RPCにする
 func (authorsServer) ListAuthors(stream pb.AuthorsService_ListAuthorsServer) error {
 	for {
 		in, err := stream.Recv()
@@ -70,66 +58,78 @@ func (authorsServer) ListAuthors(stream pb.AuthorsService_ListAuthorsServer) err
 		if err != nil {
 			return status.Errorf(codes.NotFound, "author not found")
 		}
-		for _, author := range authors {
-			if author.Id == in.Id {
-				a := &pb.Author{
-					Id:        author.Id,
-					FirstName: author.FirstName,
-					LastName:  author.LastName,
-				}
-				if err := stream.Send(a); err != nil {
-					return err
-				}
-			}
+		ctx := context.Background()
+		author, err := models.FindAuthor(ctx, db, uint64(in.Id))
+		if err != nil {
+			return status.Errorf(codes.NotFound, "author not found")
+		}
+		out := &pb.Author{
+			Id:        int32(author.ID),
+			FirstName: author.FirstName,
+			LastName:  author.LastName,
+		}
+		if err := stream.Send(out); err != nil {
+			return err
 		}
 	}
 }
 
 func (authorsServer) CreateAuthor(ctx context.Context, in *pb.CreateAuthorRequest) (*pb.Author, error) {
-	authors = append(authors, Author{
-		Id:        int32(len(authors) + 1),
+	author := models.Author{
 		FirstName: in.FirstName,
 		LastName:  in.LastName,
-	})
-	a := authors[len(authors)-1]
+	}
+	err := author.Insert(ctx, db, boil.Infer())
+	if err != nil {
+		return nil, status.Errorf(codes.Unknown, "failed to create author. error=%v", err)
+	}
 	return &pb.Author{
-		Id:        a.Id,
-		FirstName: a.FirstName,
-		LastName:  a.LastName,
+		Id:        int32(author.ID),
+		FirstName: author.FirstName,
+		LastName:  author.LastName,
 	}, nil
 }
 
 func (authorsServer) UpdateAuthor(ctx context.Context, in *pb.UpdateAuthorRequest) (*pb.Author, error) {
-	for i, author := range authors {
-		if author.Id == in.Id {
-			if in.FirstName != nil {
-				authors[i].FirstName = *in.FirstName
-			}
-			if in.LastName != nil {
-				authors[i].LastName = *in.LastName
-			}
-			return &pb.Author{
-				Id:        author.Id,
-				FirstName: authors[i].FirstName,
-				LastName:  authors[i].LastName,
-			}, nil
-		}
+	author, err := models.FindAuthor(ctx, db, uint64(in.Id))
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "author not found")
 	}
-	return nil, status.Errorf(codes.NotFound, "author not found")
+	if in.FirstName != nil {
+		author.FirstName = *in.FirstName
+	}
+	if in.LastName != nil {
+		author.LastName = *in.LastName
+	}
+	rowsAff, err := author.Update(ctx, db, boil.Infer())
+	if err != nil {
+		return nil, status.Errorf(codes.Unknown, "failed to update author. error=%v", err)
+	}
+	log.Printf("rows affected: %d", rowsAff)
+
+	return &pb.Author{
+		Id:        int32(author.ID),
+		FirstName: author.FirstName,
+		LastName:  author.LastName,
+	}, nil
 }
 
 func (authorsServer) DeleteAuthor(ctx context.Context, in *pb.DeleteAuthorRequest) (*emptypb.Empty, error) {
-	for i, author := range authors {
-		if author.Id == in.Id {
-			authors = append(authors[:i], authors[i+1:]...)
-			return &emptypb.Empty{}, nil
-		}
+	author, err := models.FindAuthor(ctx, db, uint64(in.Id))
+	if err != nil {
+		return nil, status.Errorf(codes.NotFound, "author not found")
 	}
-	return nil, status.Errorf(codes.NotFound, "author not found")
+	rowsAff, err := author.Delete(ctx, db)
+	if err != nil {
+		return nil, status.Errorf(codes.Unknown, "failed to delete author. error=%v", err)
+	}
+	log.Printf("rows affected: %d", rowsAff)
+
+	return &emptypb.Empty{}, nil
 }
 
 func main() {
-	// seeds.Seed()
+	// setup database
 	url := os.Getenv("DATABASE_URL")
 	var err error
 	db, err = sql.Open("mysql", url+"?parseTime=true")
@@ -138,6 +138,7 @@ func main() {
 	}
 	defer db.Close()
 
+	// setup grcp
 	lis, err := net.Listen("tcp", ":50051")
 	if err != nil {
 		log.Fatalf("failed to listen. error=%v", err)

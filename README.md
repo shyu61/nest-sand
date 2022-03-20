@@ -26,7 +26,7 @@ grpcurl -plaintext \
     0.0.0.0:50051 list
 
 grpcurl -plaintext -d '{"id": 1}' \
-  0.0.0.0:50051 proto.AuthorsService/ListAuthors
+  0.0.0.0:50051 proto.AuthorsService/GetAuthor
 ```
 
 ## Database
@@ -38,8 +38,8 @@ migrate create -ext sql -dir db/migrations/<table_name> -seq <table_name>
 ```
 - execute
 ```bash
-migrate -database ${DATABASE_URL} -path db/migrations/<table_name> up
-migrate -database ${DATABASE_URL} -path db/migrations/<table_name> down
+migrate -database mysql://${DATABASE_URL} -path db/migrations/<table_name> up
+migrate -database mysql://${DATABASE_URL} -path db/migrations/<table_name> down
 ```
 ### Seed
 - create template
@@ -48,6 +48,6 @@ migrate create -ext sql -dir db/seeds/<table_name>_seeds -seq <table_name>
 ```
 - execute
 ```bash
-migrate -database ${DATABASE_URL} -path db/seeds/<table_name>_seeds up
-migrate -database ${DATABASE_URL} -path db/seeds/<table_name>_seeds down
+migrate -database mysql://${DATABASE_URL} -path db/seeds/<table_name> up
+migrate -database mysql://${DATABASE_URL} -path db/seeds/<table_name> down
 ```

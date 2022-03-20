@@ -1,0 +1,22 @@
+[mysql]
+  dbname  = "nest_sand"
+  host    = "mysql"
+  port    = 3306
+  user    = "user"
+  pass    = "pass"
+  sslmode = "false"
+
+[[types]]
+  [types.match]
+    type = "int"
+
+  [types.replace]
+    type = "int32"
+
+[[types]]
+  [types.match]
+    type = "null.Int"
+    nullable = true
+
+  [types.replace]
+    type = "null.Int32"
